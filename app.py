@@ -95,7 +95,7 @@ def get_comments():
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
 
-@app.route('addComment', methods=['POST'])
+@app.route('/addComment', methods=['POST'])
 def add_comment():
     try:
         data = request.get_json()
