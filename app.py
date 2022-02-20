@@ -16,10 +16,11 @@ authenticator = IAMAuthenticator(apiKey)
 languageTranslator = LanguageTranslatorV3(version='2018-05-01', authenticator=authenticator)
 languageTranslator.set_service_url(translatorURL)
 
-translation = languageTranslator.translate(text='I am doctor', model_id='en-es').get_result()['translations'][0]['translation']
+translation = languageTranslator.translate(text='I am doctor', model_id='en-es').get_result()['translations'][0][
+    'translation']
 print(translation)
 
-#set up database
+# set up database
 app = Flask(__name__)
 CORS(app)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
@@ -83,7 +84,7 @@ class UserSchema(ma.Schema):
 
 class CommentSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'comment', 'userId', 'movieId')
+        fields = ('id', 'comment', 'userName')
 
 
 movie_schema = MovieSchema()
@@ -107,9 +108,28 @@ def get_movies():
 @app.route('/getComments/<movie_id>', methods=['GET'])
 def get_comments(movie_id):
     try:
-        comments = Comment.query.filter_by(movieId=movie_id)
-        for comment in comments:
-            comment.comment = translation = languageTranslator.translate(text=comment.comment, model_id='en-es').get_result()['translations'][0]['translation']
+        # comments = Comment.query.filter_by(movieId=movie_id)
+        # for comment in comments:
+        #     comment.comment = \
+        #     languageTranslator.translate(text=comment.comment, model_id='en-es').get_result()['translations'][0][
+        #         'translation']
+
+        comments_db = Comment.query. \
+            join(User, Comment.userId == User.id) \
+            .add_columns(User.username, Comment.id, Comment.comment) \
+            .filter(Comment.movieId == movie_id)
+
+        comments = []
+        for comment in comments_db:
+            comments.append({
+                "id": comment.id,
+                "username": comment.username,
+                "comment": languageTranslator.translate(text=comment.comment, model_id='en-es').get_result()['translations'][0]['translation']
+            })
+        return make_response(jsonify({
+            "comments": comments
+        }), 200)
+
         return make_response(jsonify(comments_schema.dump(comments)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
