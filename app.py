@@ -5,8 +5,13 @@ from flask_restful import Resource, Api
 from sqlalchemy.orm import backref
 from datetime import datetime
 from functools import wraps
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+# app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy   dog'
+# app.config['CORS_HEADERS'] = 'Content-Type'
+#
+# cors = CORS(app, resources={r"/getMovies": {"origins": "http://localhost:4200"}})
 
 api = Api(app)
 app.config['JSON_SORT_KEYS'] = False
@@ -87,13 +92,14 @@ def get_movies():
         return make_response({'message': 'There is an internal issue.'}, 500)
 
 
-@app.route('/getComments', methods=['GET'])
-def get_comments():
+@app.route('/getComments/<movie_id>', methods=['GET'])
+def get_comments(movie_id):
     try:
-        comments = Comment.query.all()
+        comments = Comment.query.filter_by(movieId=movie_id)
         return make_response(jsonify(comments_schema.dump(comments)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
+
 
 @app.route('/addComment', methods=['POST'])
 def add_comment():
