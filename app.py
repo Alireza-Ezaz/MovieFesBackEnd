@@ -130,7 +130,6 @@ def get_comments(movie_id):
             "comments": comments
         }), 200)
 
-        return make_response(jsonify(comments_schema.dump(comments)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
 
