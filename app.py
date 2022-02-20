@@ -113,6 +113,14 @@ def get_comments(movie_id):
         #     comment.comment = \
         #     languageTranslator.translate(text=comment.comment, model_id='en-es').get_result()['translations'][0][
         #         'translation']
+        try:
+            language = request.args.get('language')
+        except Exception as ex:
+            print('hihihi')
+            language = 'en'
+        print(language)
+        if language is None:
+            language = 'en'
 
         comments_db = Comment.query. \
             join(User, Comment.userId == User.id) \
@@ -121,17 +129,26 @@ def get_comments(movie_id):
 
         comments = []
         for comment in comments_db:
-            comments.append({
-                "id": comment.id,
-                "username": comment.username,
-                "comment": languageTranslator.translate(text=comment.comment, model_id='en-es').get_result()['translations'][0]['translation']
-            })
+            if language == 'en':
+                comments.append({
+                    "id": comment.id,
+                    "username": comment.username,
+                    "comment": comment.comment
+                })
+            else:
+                comments.append({
+                    "id": comment.id,
+                    "username": comment.username,
+                    "comment":
+                        languageTranslator.translate(text=comment.comment, model_id='en-' + language).get_result()[
+                            'translations'][0]['translation']
+                })
         return make_response(jsonify({
             "comments": comments
         }), 200)
 
     except Exception as ex:
-        return make_response({'message': 'There is an internal issue.'}, 500)
+        return make_response({'message': ex}, 500)
 
 
 @app.route('/addComment', methods=['POST'])
