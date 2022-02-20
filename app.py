@@ -53,3 +53,58 @@ class Comment(db.Model):
         self.userId = userId
         self.movieId = movieId
         self.comment = comment_body
+
+
+class MovieSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'name', 'director', 'poster')
+
+
+class UserSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'username')
+
+
+class CommentSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'comment', 'userId', 'movieId')
+
+
+movie_schema = MovieSchema()
+movies_schema = MovieSchema(many=True)
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+comment_schema = CommentSchema()
+comments_schema = CommentSchema(many=True)
+
+
+@app.route('/getMovies', methods=['GET'])
+def get_movies():
+    try:
+        movies = Movie.query.all()
+        return make_response(jsonify(movies_schema.dump(movies)), 200)
+    except Exception as ex:
+        return make_response({'message': 'There is an internal issue.'}, 500)
+
+
+@app.route('/getComments', methods=['GET'])
+def get_comments():
+    try:
+        comments = Comment.query.all()
+        return make_response(jsonify(comments_schema.dump(comments)), 200)
+    except Exception as ex:
+        return make_response({'message': 'There is an internal issue.'}, 500)
+
+@app.route('addComment', methods=['POST'])
+def add_comment():
+    try:
+        data = request.get_json()
+        userId = data['userId']
+        movieId = data['movieId']
+        comment_body = data['comment']
+        comment = Comment(userId, movieId, comment_body)
+        db.session.add(comment)
+        db.session.commit()
+        return make_response(jsonify(comment_schema.dump(comment)), 200)
+    except Exception as ex:
+        return make_response({'message': 'There is an internal issue.'}, 500)
