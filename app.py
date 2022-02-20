@@ -1,4 +1,6 @@
-from flask import Flask, request, jsonify, Response, make_response
+import os
+
+from flask import Flask, request, jsonify, Response, make_response, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful import Resource, Api
@@ -8,6 +10,9 @@ from functools import wraps
 from flask_cors import CORS, cross_origin
 from ibm_watson import LanguageTranslatorV3
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+
+# from werkzeug import secure_filename
+
 
 # Set up translation service
 apiKey = "OtU_So4WkmFiM5r8I4QKTYctCtyQnneUFn7sNVPe43OZ"
@@ -33,6 +38,16 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
+
+# Set up upload folder
+app.config['MAX_CONTENT_PATH'] = 2 * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = '/uploads'
+ALLOWED_EXTENSIONS = {'mp3', 'wav', 'flac', 'ogg'}
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 class Movie(db.Model):
@@ -162,3 +177,48 @@ def add_comment():
         return make_response(jsonify(comment_schema.dump(comment)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
+
+
+# @app.route('/uploader')
+# def upload_file():
+#     return render_template('upload.html')
+
+
+@app.route('/uploadComment', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        f = request.files['file']
+        if f.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+            f.save(f.filename)
+            return 'file uploaded successfully'
+        else:
+            return 'file extension not allowed'
+    return 'could not upload file'
+    #
+#
+# @app.route('/uploadComment', methods=['GET', 'POST'])
+# def upload_file():
+#     if request.method == 'POST':
+#         # check if the post request has the file part
+#         if 'file' not in request.files:
+#             print('No file part')
+#             return redirect(request.url)
+#         file = request.files['file']
+#         # If the user does not select a file, the browser submits an
+#         # empty file without a filename.
+#         if file.filename == '':
+#             print('No selected file')
+#             return redirect(request.url)
+#
+#         filename = file.filename
+#         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+#         return redirect(url_for('download_file', name=filename))
+#     return '''
+#     <!doctype html>
+#     <title>Upload new File</title>
+#     <h1>Upload new File</h1>
+#     <form method=post enctype=multipart/form-data>
+#       <input type=file name=file>
+#       <input type=submit value=Upload>
+#     </form>
+#     '''
