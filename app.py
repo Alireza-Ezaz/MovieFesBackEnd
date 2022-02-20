@@ -6,7 +6,20 @@ from sqlalchemy.orm import backref
 from datetime import datetime
 from functools import wraps
 from flask_cors import CORS, cross_origin
+from ibm_watson import LanguageTranslatorV3
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
+# Set up translation service
+apiKey = "OtU_So4WkmFiM5r8I4QKTYctCtyQnneUFn7sNVPe43OZ"
+translatorURL = "https://api.eu-gb.language-translator.watson.cloud.ibm.com/instances/582b8da1-4753-4537-9871-84f1b0ab3e3f"
+authenticator = IAMAuthenticator(apiKey)
+languageTranslator = LanguageTranslatorV3(version='2018-05-01', authenticator=authenticator)
+languageTranslator.set_service_url(translatorURL)
+
+translation = languageTranslator.translate(text='I am doctor', model_id='en-es').get_result()['translations'][0]['translation']
+print(translation)
+
+#set up database
 app = Flask(__name__)
 CORS(app)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
@@ -95,6 +108,8 @@ def get_movies():
 def get_comments(movie_id):
     try:
         comments = Comment.query.filter_by(movieId=movie_id)
+        for comment in comments:
+            comment.comment = translation = languageTranslator.translate(text=comment.comment, model_id='en-es').get_result()['translations'][0]['translation']
         return make_response(jsonify(comments_schema.dump(comments)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
@@ -113,6 +128,3 @@ def add_comment():
         return make_response(jsonify(comment_schema.dump(comment)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
-
-
-
