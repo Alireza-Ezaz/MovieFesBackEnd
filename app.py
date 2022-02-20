@@ -143,9 +143,7 @@ def get_comments(movie_id):
                         languageTranslator.translate(text=comment.comment, model_id='en-' + language).get_result()[
                             'translations'][0]['translation']
                 })
-        return make_response(jsonify({
-            "comments": comments
-        }), 200)
+        return make_response(jsonify({"comments": comments}), 200)
 
     except Exception as ex:
         return make_response({'message': ex}, 500)
