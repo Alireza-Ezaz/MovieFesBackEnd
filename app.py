@@ -8,10 +8,8 @@ from functools import wraps
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy   dog'
-# app.config['CORS_HEADERS'] = 'Content-Type'
-#
-# cors = CORS(app, resources={r"/getMovies": {"origins": "http://localhost:4200"}})
+CORS(app)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 api = Api(app)
 app.config['JSON_SORT_KEYS'] = False
@@ -84,6 +82,7 @@ comments_schema = CommentSchema(many=True)
 
 
 @app.route('/getMovies', methods=['GET'])
+# @cross_origin()
 def get_movies():
     try:
         movies = Movie.query.all()
@@ -114,3 +113,6 @@ def add_comment():
         return make_response(jsonify(comment_schema.dump(comment)), 200)
     except Exception as ex:
         return make_response({'message': 'There is an internal issue.'}, 500)
+
+
+
