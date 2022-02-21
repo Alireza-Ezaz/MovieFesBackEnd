@@ -29,18 +29,6 @@ speechToTextAuthenticator = IAMAuthenticator(speachToTextApiKey)
 speechToText = SpeechToTextV1(authenticator=speechToTextAuthenticator)
 speechToText.set_service_url(speechToTextURL)
 
-# Set up natural language understanding service
-naturalLanguageUnderstandingApiKey = "z00I9R4mUv4co01Xo_pbcJ-CoIVYZQAVxPKw8bpbZDdh"
-naturalLanguageUnderstandingURL = "https://api.eu-gb.natural-language-understanding.watson.cloud.ibm.com/instances/13c12fb8-335f-4616-84b1-ba9a031a4cac"
-naturalLanguageUnderstandingAuthenticator = IAMAuthenticator(naturalLanguageUnderstandingApiKey)
-naturalLanguageUnderstanding = NaturalLanguageUnderstandingV1(version='2021-08-01',
-                                                              authenticator=naturalLanguageUnderstandingAuthenticator)
-naturalLanguageUnderstanding.set_service_url(naturalLanguageUnderstandingURL)
-
-response = naturalLanguageUnderstanding.analyze(
-    text='Hello, who the hell are you? you are such an idiot',
-    features=Features(emotion=EmotionOptions())).get_result()['emotion']['document']['emotion']['anger']
-print(response)
 # try:
 #     with open('amazing.mp3', 'rb') as f:
 #         comment = speechToText.recognize(audio=f, content_type='application/octet-stream', model='en-US_NarrowbandModel').get_result()['results'][0]['alternatives'][0][
@@ -49,6 +37,20 @@ print(response)
 # except ApiException as ex:
 #     print("Method failed with status code " + str(ex.code) + ": " + ex.message)
 #     print(ex)
+
+# Set up natural language understanding service
+naturalLanguageUnderstandingApiKey = "z00I9R4mUv4co01Xo_pbcJ-CoIVYZQAVxPKw8bpbZDdh"
+naturalLanguageUnderstandingURL = "https://api.eu-gb.natural-language-understanding.watson.cloud.ibm.com/instances/13c12fb8-335f-4616-84b1-ba9a031a4cac"
+naturalLanguageUnderstandingAuthenticator = IAMAuthenticator(naturalLanguageUnderstandingApiKey)
+naturalLanguageUnderstanding = NaturalLanguageUnderstandingV1(version='2021-08-01',
+                                                              authenticator=naturalLanguageUnderstandingAuthenticator)
+naturalLanguageUnderstanding.set_service_url(naturalLanguageUnderstandingURL)
+
+# response = naturalLanguageUnderstanding.analyze(
+#     text='Hello, who the hell are you? you are such an idiot',
+#     features=Features(emotion=EmotionOptions())).get_result()['emotion']['document']['emotion']['anger']
+# print(response)
+
 
 
 # set up database
@@ -224,12 +226,19 @@ def upload_file():
             print(voice_file.filename)
 
             comment = speechToText.recognize(audio=voice_file, content_type='application/octet-stream',
-                                             model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][
-                0]['transcript']
+                                             model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][0]['transcript']
             print(comment)
+            response = naturalLanguageUnderstanding.analyze(text=comment,features=Features(emotion=EmotionOptions())).get_result()['emotion']['document']['emotion']['anger']
+            print(response)
+            if response > 0.5:
+                return 'Comment is offensive'
+            else:
+                userId = 1
+                comment = Comment(userId, movieId, comment)
+                db.session.add(comment)
+                db.session.commit()
+                return make_response(jsonify(comment_schema.dump(comment)), 200)
 
-            voice_file.save(voice_file.filename)
-            return 'file uploaded successfully'
         else:
             return 'file extension not allowed'
     return 'could not upload file'
