@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful import Resource, Api
 from ibm_cloud_sdk_core import ApiException
+from ibm_watson.natural_language_understanding_v1 import Features, EmotionOptions
 from sqlalchemy.orm import backref
 from datetime import datetime
 from functools import wraps
@@ -12,10 +13,7 @@ from flask_cors import CORS, cross_origin
 from ibm_watson import LanguageTranslatorV3
 from ibm_watson import SpeechToTextV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
-from ibm_watson.websocket import RecognizeCallback, AudioSource
-
-# from werkzeug import secure_filename
-
+from ibm_watson import NaturalLanguageUnderstandingV1
 
 # Set up translation service
 translateApiKey = "OtU_So4WkmFiM5r8I4QKTYctCtyQnneUFn7sNVPe43OZ"
@@ -31,6 +29,18 @@ speechToTextAuthenticator = IAMAuthenticator(speachToTextApiKey)
 speechToText = SpeechToTextV1(authenticator=speechToTextAuthenticator)
 speechToText.set_service_url(speechToTextURL)
 
+# Set up natural language understanding service
+naturalLanguageUnderstandingApiKey = "z00I9R4mUv4co01Xo_pbcJ-CoIVYZQAVxPKw8bpbZDdh"
+naturalLanguageUnderstandingURL = "https://api.eu-gb.natural-language-understanding.watson.cloud.ibm.com/instances/13c12fb8-335f-4616-84b1-ba9a031a4cac"
+naturalLanguageUnderstandingAuthenticator = IAMAuthenticator(naturalLanguageUnderstandingApiKey)
+naturalLanguageUnderstanding = NaturalLanguageUnderstandingV1(version='2021-08-01',
+                                                              authenticator=naturalLanguageUnderstandingAuthenticator)
+naturalLanguageUnderstanding.set_service_url(naturalLanguageUnderstandingURL)
+
+response = naturalLanguageUnderstanding.analyze(
+    text='Hello, who the hell are you? you are such an idiot',
+    features=Features(emotion=EmotionOptions())).get_result()['emotion']['document']['emotion']['anger']
+print(response)
 # try:
 #     with open('amazing.mp3', 'rb') as f:
 #         comment = speechToText.recognize(audio=f, content_type='application/octet-stream', model='en-US_NarrowbandModel').get_result()['results'][0]['alternatives'][0][
@@ -214,7 +224,8 @@ def upload_file():
             print(voice_file.filename)
 
             comment = speechToText.recognize(audio=voice_file, content_type='application/octet-stream',
-                                                 model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][0]['transcript']
+                                             model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][
+                0]['transcript']
             print(comment)
 
             voice_file.save(voice_file.filename)
