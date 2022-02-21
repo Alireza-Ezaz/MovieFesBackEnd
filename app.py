@@ -4,35 +4,49 @@ from flask import Flask, request, jsonify, Response, make_response, render_templ
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful import Resource, Api
+from ibm_cloud_sdk_core import ApiException
 from sqlalchemy.orm import backref
 from datetime import datetime
 from functools import wraps
 from flask_cors import CORS, cross_origin
 from ibm_watson import LanguageTranslatorV3
+from ibm_watson import SpeechToTextV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+from ibm_watson.websocket import RecognizeCallback, AudioSource
 
 # from werkzeug import secure_filename
 
 
 # Set up translation service
-apiKey = "OtU_So4WkmFiM5r8I4QKTYctCtyQnneUFn7sNVPe43OZ"
+translateApiKey = "OtU_So4WkmFiM5r8I4QKTYctCtyQnneUFn7sNVPe43OZ"
 translatorURL = "https://api.eu-gb.language-translator.watson.cloud.ibm.com/instances/582b8da1-4753-4537-9871-84f1b0ab3e3f"
-authenticator = IAMAuthenticator(apiKey)
-languageTranslator = LanguageTranslatorV3(version='2018-05-01', authenticator=authenticator)
+translateAuthenticator = IAMAuthenticator(translateApiKey)
+languageTranslator = LanguageTranslatorV3(version='2018-05-01', authenticator=translateAuthenticator)
 languageTranslator.set_service_url(translatorURL)
 
-translation = languageTranslator.translate(text='I am doctor', model_id='en-es').get_result()['translations'][0][
-    'translation']
-print(translation)
+# Set up speech to text service
+speachToTextApiKey = "k4CrH0k-exQc2VG-i78BrTaP3pRZ3Np20k4XsimKoYfL"
+speechToTextURL = "https://api.eu-gb.speech-to-text.watson.cloud.ibm.com/instances/b1006705-5b52-451d-8373-b509ce805758"
+speechToTextAuthenticator = IAMAuthenticator(speachToTextApiKey)
+speechToText = SpeechToTextV1(authenticator=speechToTextAuthenticator)
+speechToText.set_service_url(speechToTextURL)
+
+# try:
+#     with open('amazing.mp3', 'rb') as f:
+#         comment = speechToText.recognize(audio=f, content_type='application/octet-stream', model='en-US_NarrowbandModel').get_result()['results'][0]['alternatives'][0][
+#             'transcript']
+#         print(comment)
+# except ApiException as ex:
+#     print("Method failed with status code " + str(ex.code) + ": " + ex.message)
+#     print(ex)
+
 
 # set up database
 app = Flask(__name__)
 CORS(app)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
-
 api = Api(app)
 app.config['JSON_SORT_KEYS'] = False
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///MovieFes.db'  # Specify database name
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -186,10 +200,24 @@ def add_comment():
 
 @app.route('/uploadComment', methods=['GET', 'POST'])
 def upload_file():
+    try:
+        movieId = request.args.get('movieId')
+    except Exception as ex:
+        return 'Issue in getting movieId'
+    print(movieId)
+    if movieId is None:
+        return 'Issue in getting movieId'
     if request.method == 'POST':
-        f = request.files['file']
-        if f.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
-            f.save(f.filename)
+        voice_file = request.files['file']
+        if voice_file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+            # perform file conversion
+            print(voice_file.filename)
+
+            comment = speechToText.recognize(audio=voice_file, content_type='application/octet-stream',
+                                                 model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][0]['transcript']
+            print(comment)
+
+            voice_file.save(voice_file.filename)
             return 'file uploaded successfully'
         else:
             return 'file extension not allowed'
