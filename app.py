@@ -52,7 +52,6 @@ naturalLanguageUnderstanding.set_service_url(naturalLanguageUnderstandingURL)
 # print(response)
 
 
-
 # set up database
 app = Flask(__name__)
 CORS(app)
@@ -226,9 +225,12 @@ def upload_file():
             print(voice_file.filename)
 
             comment = speechToText.recognize(audio=voice_file, content_type='application/octet-stream',
-                                             model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][0]['transcript']
+                                             model='en-US_BroadbandModel').get_result()['results'][0]['alternatives'][
+                0]['transcript']
             print(comment)
-            response = naturalLanguageUnderstanding.analyze(text=comment,features=Features(emotion=EmotionOptions())).get_result()['emotion']['document']['emotion']['anger']
+            response = naturalLanguageUnderstanding.analyze(text=comment,
+                                                            features=Features(emotion=EmotionOptions())).get_result()[
+                'emotion']['document']['emotion']['anger']
             print(response)
             if response > 0.5:
                 return 'Comment is offensive'
@@ -243,6 +245,9 @@ def upload_file():
             return 'file extension not allowed'
     return 'could not upload file'
     #
+
+
+
 #
 # @app.route('/uploadComment', methods=['GET', 'POST'])
 # def upload_file():
